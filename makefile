@@ -1,16 +1,17 @@
 CC = gcc
-CFLAGS = -Wall -g -Iinclude -fPIC
-SRC = src/file_ops.c src/dir_ops.c
+CFLAGS = -Wall -g -Iinclude -D_XOPEN_SOURCE=700
+SRC = src/file_ops.c src/dir_ops.c src/auth.c
 OBJ = $(SRC:.c=.o)
-OUT = libcorevault.so
+MAIN_SRC = src/main.c
+MAIN_OUT = cv
 
-all: $(OUT)
+all: $(MAIN_OUT)
 
-$(OUT): $(OBJ)
-	$(CC) -shared $(OBJ) -o $(OUT)
+$(MAIN_OUT): $(MAIN_SRC) $(OBJ) include/corevault.h
+	$(CC) $(CFLAGS) $(MAIN_SRC) $(OBJ) -o $(MAIN_OUT)
 
 src/%.o: src/%.c include/corevault.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OUT) $(OBJ)
+	rm -f $(MAIN_OUT) $(OBJ) .corevault_pass

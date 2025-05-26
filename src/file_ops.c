@@ -1,126 +1,116 @@
-#include<fcntl.h>
-#include<unistd.h>
-#include<errno.h>
-#include<string.h>
-#include<stdio.h>
-#include<sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <time.h>
 #include "corevault.h"
 
-void create_file(const char *file_name) {
-    //fd=file descriptor, for a valid fd its valye is non negative integer
-    printf("trying to create %s\n", file_name);
-    int fd = open(file_name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if(fd==-1) {
-        perror("Failed to create file\n");
-        return;
-    }
-
-    const char *data = "This file is created using system call";
-    if(write(fd, data, strlen(data)) == -1) {
-        perror("Error writing to file\n");
+void create_file(const char *filename) {
+    int fd = open(filename, O_CREAT | O_WRONLY, 0644);
+    if (fd == -1) {
+        perror("Failed to create file");
         return;
     }
     close(fd);
-    printf("File %s has been created\n", file_name);
+    printf("File %s created.\n", filename);
 }
 
-void read_file(const char *file_name) {
-    int fd = open(file_name, O_RDONLY);
-    if(fd==-1) {
-        perror("Error opening the file");
+void open_file(const char *filename) {
+    char command[512];
+    snprintf(command, sizeof(command), "xdg-open %s", filename);
+    if (system(command) == -1) {
+        perror("Failed to open file");
         return;
     }
-    char buffer[1000];
-    ssize_t bytes_read = read(fd, buffer, sizeof(buffer)-1);
-    
-    if(bytes_read==-1) {
-        perror("Error reading the data from file\n");
-        return;
-    }
-
-    buffer[bytes_read]='\0';
-    printf("File Contents : %s\n", buffer);
-    close(fd);
+    printf("File %s opened.\n", filename);
 }
 
-void delete_file(const char *file_name) {
-    if(unlink(file_name) == -1) {
-        perror("Error deleting the file\n");
+void delete_file(const char *filename) {
+    if (unlink(filename) == -1) {
+        perror("Failed to delete file");
         return;
     }
-    else {
-        printf("file %s deleted\n", file_name);
-    }
+    printf("File %s deleted.\n", filename);
 }
 
-void rename_file(const char *old_name, const char *new_name) {
-    if(rename(old_name, new_name) == -1) {
-        perror("Error renaming the file\n");
+void metadata(const char *filename) {
+    struct stat st;
+    if (stat(filename, &st) == -1) {
+        perror("Failed to get file metadata");
         return;
     }
-    printf("File renamed from %s to %s\n", old_name, new_name);
+    printf("File: %s\n", filename);
+    printf("Size: %lld bytes\n", (long long)st.st_size);
+    printf("Permissions: %o\n", st.st_mode & 0777);
+    printf("Last modified: %s", ctime(&st.st_mtime));
 }
 
 void copy_file(const char *src, const char *dest) {
-    struct stat st;
-    char dest_path[256];
-    char clean_dest[256];
-
-    // Remove trailing slash from dest
-    strncpy(clean_dest, dest, sizeof(clean_dest));
-    clean_dest[sizeof(clean_dest) - 1] = '\0';
-    size_t len = strlen(clean_dest);
-    if (len > 0 && clean_dest[len - 1] == '/') {
-        clean_dest[len - 1] = '\0';
-    }
-
-    // Check if dest is a directory
-    if (stat(clean_dest, &st) == 0 && S_ISDIR(st.st_mode)) {
-        // Extract filename from src
-        const char *filename = strrchr(src, '/');
-        filename = (filename == NULL) ? src : filename + 1;
-        // Construct destination path
-        if (snprintf(dest_path, sizeof(dest_path), "%s/%s", clean_dest, filename) >= sizeof(dest_path)) {
-            fprintf(stderr, "Error: Destination path too long\n");
-            return;
-        }
-    } else {
-        strncpy(dest_path, clean_dest, sizeof(dest_path));
-        dest_path[sizeof(dest_path) - 1] = '\0';
-    }
-
-    int src_fd = open(src, O_RDONLY);
-    if (src_fd == -1) {
+    FILE *source = fopen(src, "rb");
+    if (!source) {
         perror("Failed to open source file");
         return;
     }
-
-    int dest_fd = open(dest_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if (dest_fd == -1) {
+    FILE *destination = fopen(dest, "wb");
+    if (!destination) {
         perror("Failed to open destination file");
-        close(src_fd);
+        fclose(source);
         return;
     }
-
-    char buffer[1024];
-    ssize_t bytes_read;
-    while ((bytes_read = read(src_fd, buffer, sizeof(buffer))) > 0) {
-        if (write(dest_fd, buffer, bytes_read) != bytes_read) {
-            perror("Error copying file");
-            close(src_fd);
-            close(dest_fd);
+    char buffer[4096];
+    size_t bytes;
+    while ((bytes = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+        if (fwrite(buffer, 1, bytes, destination) != bytes) {
+            perror("Failed to write to destination file");
+            fclose(source);
+            fclose(destination);
             return;
         }
     }
+    fclose(source);
+    fclose(destination);
+    printf("File copied from %s to %s\n", src, dest);
+}
 
-    if (bytes_read == -1) {
-        perror("Error reading source file");
-        close(src_fd);
-        close(dest_fd);
+void move_file(const char *src, const char *dest) {
+    if (rename(src, dest) == -1) {
+        perror("Failed to move file");
         return;
     }
+    printf("File moved from %s to %s\n", src, dest);
+}
 
-    close(src_fd);
-    close(dest_fd);
-    printf("File copied from %s to %s\n", src, dest_path);
+void rename_file(const char *oldname, const char *newname) {
+    if (rename(oldname, newname) == -1) {
+        perror("Failed to rename file");
+        return;
+    }
+    printf("File renamed from %s to %s\n", oldname, newname);
+}
+
+void encrypt_file(const char *filename, const char *key) {
+    FILE *input = fopen(filename, "rb+");
+    if (!input) {
+        perror("Failed to open file for encryption");
+        return;
+    }
+    size_t key_len = strlen(key);
+    size_t key_idx = 0;
+    int ch;
+    fseek(input, 0, SEEK_SET);
+    while ((ch = fgetc(input)) != EOF) {
+        fseek(input, -1, SEEK_CUR);
+        fputc(ch ^ key[key_idx % key_len], input);
+        fseek(input, 0, SEEK_CUR);
+        key_idx++;
+    }
+    fclose(input);
+    printf("File %s encrypted.\n", filename);
+}
+
+void decrypt_file(const char *filename, const char *key) {
+    encrypt_file(filename, key); // XOR is symmetric
+    printf("File %s decrypted.\n", filename);
 }

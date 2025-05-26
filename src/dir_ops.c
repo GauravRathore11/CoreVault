@@ -4,11 +4,11 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <ftw.h>
 #include "corevault.h"
 
-// Callback for nftw to remove files and directories
 static int remove_entry(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
     if (typeflag == FTW_F || typeflag == FTW_SL) {
         if (unlink(fpath) == -1) {
@@ -24,7 +24,6 @@ static int remove_entry(const char *fpath, const struct stat *sb, int typeflag, 
     return 0;
 }
 
-// Check if directory is non-empty
 static int is_directory_non_empty(const char *dirname) {
     DIR *dir = opendir(dirname);
     if (dir == NULL) {
@@ -47,7 +46,15 @@ static int is_directory_non_empty(const char *dirname) {
     return 0;
 }
 
-int delete_directory(const char *dirname) {
+void createdir(const char *dirname) {
+    if (mkdir(dirname, 0755) == -1) {
+        perror("Failed to create directory");
+        return;
+    }
+    printf("Directory %s created.\n", dirname);
+}
+
+int deletedir(const char *dirname) {
     struct stat st;
     if (stat(dirname, &st) == -1) {
         perror("Error accessing directory");
@@ -63,9 +70,18 @@ int delete_directory(const char *dirname) {
         return -1;
     }
     if (non_empty) {
-        return 1;
+        return 1; // CLI will prompt for confirmation
     }
 
+    if (nftw(dirname, remove_entry, 64, FTW_DEPTH | FTW_PHYS) == -1) {
+        perror("Failed to delete directory tree");
+        return -1;
+    }
+    printf("Directory %s deleted.\n", dirname);
+    return 0;
+}
+
+int deletedir_force(const char *dirname) {
     if (nftw(dirname, remove_entry, 64, FTW_DEPTH | FTW_PHYS) == -1) {
         perror("Failed to delete directory tree");
         return -1;
@@ -124,10 +140,10 @@ void search(const char *path, const char *name) {
     closedir(dir);
 }
 
-void create_directory(const char *dirname) {
-    if (mkdir(dirname, 0755) == -1) {
-        perror("Failed to create directory");
+void change_directory(const char *dirname) {
+    if (chdir(dirname) == -1) {
+        perror("Failed to change directory");
         return;
     }
-    printf("Directory %s created.\n", dirname);
+    printf("Changed to directory %s\n", dirname);
 }

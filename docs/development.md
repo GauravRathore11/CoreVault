@@ -1,28 +1,22 @@
-Folder structure for the project : 
+# Development
 
-CoreVault/
-├── src/                  # Source code
-│   ├── main.c            # Entry point (CLI parsing)
-│   ├── file_ops.c        # File operation implementations
-│   └── dir_ops.c         # Directory operation implementations
-├── include/              # Header files
-│   └── corevault.h       # Function prototypes and structs
-├── docs/                 # Documentation
-│   ├── usage.md          # How to use CoreVault
-│   ├── development.md    # Design and implementation details
-│   └── testing.md        # Test cases
-├── tests/                # Test scripts or programs
-├── Makefile              # Build automation
-├── README.md             # Project overview
-└── .gitignore            # Ignore build artifacts
+## Features
+- **Authentication**: Password-based login with `setpass` and `login`.
+- **Create File**: Creates empty files with `open`.
+- **Open File**: Opens files in default application using `xdg-open`.
+- **Delete File**: Removes files with `unlink`.
+- **Metadata**: Shows file size, permissions, and timestamps.
+- **List Directory**: Lists files/directories with `readdir`.
+- **Copy/Move File**: Copies files with `fread`/`fwrite`, moves with `rename`.
+- **Rename File/Directory**: Uses `rename` system call.
+- **Create/Delete Directory**: Uses `mkdir` and `nftw` for recursive deletion.
+- **Search**: Searches files/directories by name.
+- **Change Directory**: Uses `chdir`.
+- **Encryption/Decryption**: Uses XOR-based encryption (demo).
 
-# Development Notes
-## Structure
-- `src/main.c`: CLI and entry point.
-- `src/file_ops.c`: File operations (create, read, delete).
-- `src/dir_ops.c`: Directory operations (list).
-- `include/corevault.h`: Function prototypes.
-
-## Design
-- Uses POSIX system calls for low-level operations.
-- Modular design with separate files for different functionalities.
+## CLI
+- `main.c`: CLI interface with authentication.
+- `file_ops.c`: File operations.
+- `dir_ops.c`: Directory operations.
+- `auth.c`: Authentication functions.
+- `Makefile`: Builds CLI executable `corevault`.
