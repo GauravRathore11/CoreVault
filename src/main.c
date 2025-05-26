@@ -47,6 +47,12 @@ void parse_command(char *input) {
         return;
     }
 
+    if (strcmp(command, "exit") == 0 && token_count == 1) {
+        printf("Exiting CoreVault.\n");
+        authenticated=0;
+        exit(0);
+    }
+    
     // Allow setpass, login, and help without authentication
     if (strcmp(command, "setpass") == 0 && token_count == 2) {
         if (tokens[1] == NULL) {
@@ -171,10 +177,6 @@ void parse_command(char *input) {
             return;
         }
         decrypt_file(tokens[1], tokens[2]);
-    } else if (strcmp(command, "exit") == 0 && token_count == 1) {
-        printf("Exiting CoreVault.\n");
-        authenticated=0;
-        exit(0);
     } else {
         printf("Unknown command or wrong arguments.\n");
         print_usage();
