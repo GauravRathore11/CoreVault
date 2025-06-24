@@ -51,6 +51,8 @@ void parse_command(char *input) {
         printf("Exiting CoreVault.\n");
         authenticated=0;
         exit(0);
+    } else if(strcmp(command, "help") == 0 && token_count == 1) {
+        print_usage();
     }
     
     // Allow setpass, login, and help without authentication

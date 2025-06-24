@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g -Iinclude -fPIC -D_XOPEN_SOURCE=700
-SOURCES = src/file_ops.c src/dir_ops.c src/auth.c
+SOURCES = src/file_ops.c src/dir_ops.c src/auth.c src/en_decryption.c
 OBJECTS = $(SOURCES:.c=.o)
 LIB_OUT = libcorevault.so
 MAIN_SRC = src/main.c
